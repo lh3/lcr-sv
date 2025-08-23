@@ -89,6 +89,7 @@ function count(fn, bed, label) {
 	for (const line of k8_readline(fn)) {
 		if (line[0] == "#") continue;
 		let m, t = line.split("\t");
+		if (!/^([A-Za-z]+|<DEL\S*>)$/.test(t[4])) continue; // ignore if sequence is not resolved
 		const ctg = t[0];
 		const st = parseInt(t[1]);
 		const en = (m = /\bEND=(\d+)/.exec(t[7])) != null? parseInt(m[1]) : st + t[3].length;
