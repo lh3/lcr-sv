@@ -1,0 +1,5 @@
+region	length
+SegDup	166847065
+SVLCR	13433854
+OtherLCR	42028070
+OtherReg	2701408346
