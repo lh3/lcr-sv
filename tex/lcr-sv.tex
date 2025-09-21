@@ -1,0 +1,271 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Please note that whilst this template provides a 
+% preview of the typeset manuscript for submission, it 
+% will not necessarily be the final publication layout.
+%
+% letterpaper/a4paper: US/UK paper size toggle
+% num-refs/alpha-refs: numeric/author-year citation and bibliography toggle
+
+%\documentclass[letterpaper]{oup-contemporary}
+\documentclass[a4paper,num-refs]{oup-contemporary}
+
+%%% Journal toggle; only specific options recognised.
+%%% (Only "gigascience" and "general" are implemented now. Support for other journals is planned.)
+\journal{gigascience}
+
+\usepackage{graphicx}
+\usepackage{siunitx}
+\usepackage{lmodern}
+
+%%% Flushend: You can add this package to automatically balance the final page, but if things go awry (e.g. section contents appearing out-of-order or entire blocks or paragraphs are coloured), remove it!
+% \usepackage{flushend}
+
+\title{Challenges in structural variant calling in low-complexity regions}
+
+%%% Use the \authfn to add symbols for additional footnotes, if any. 1 is reserved for correspondence emails; then continuing with 2 etc for contributions.
+\author[1]{Qian Qin}
+\author[2,3,4,\authfn{1}]{Heng Li}
+
+\affil[1]{Brigham Women's Hospital, 75 Francis St, Boston, MA 02115, USA}
+\affil[2]{Department of Biomedical Informatics, Harvard Medical School, 10 Shattuck St, Boston, MA 02215, USA}
+\affil[3]{Department of Data Science, Dana-Farber Cancer Institute, 450 Brookline Ave, Boston, MA 02215, USA}
+\affil[4]{Broad Insitute of MIT and Harvard, 415 Main St, Cambridge, MA 02142, USA}
+
+%%% Author Notes
+\authnote{\authfn{1}hli@ds.dfci.harvard.edu}
+
+%%% Paper category
+\papercat{Research}
+
+%%% "Short" author for running page header
+\runningauthor{Qin and Li}
+
+%%% Should only be set by an editor
+\jvolume{00}
+\jnumber{0}
+\jyear{2025}
+
+\begin{document}
+
+\begin{frontmatter}
+\maketitle
+\begin{abstract}
+\textbf{Background:}
+Strcutural variants (SVs) refer to genomic differences between individuals that are $\ge$50bp in length.
+They have profound influences on pheonotypes but are challenging to call even with long sequence reads.
+\vspace{0.5em}\\
+\textbf{Results:}
+We evaluated the SV calling accuracy of several long-read SV callers, taking the latest HG002-Q100 benchmark as the ground truth.
+We found that of $\sim$28,000 SVs in the confident regions of HG002, 69.1\% overlap with low-complexity regions (LCRs) covering 1.2\% of GRCh38.
+Depending on long-read SV callers, 78.6--92.5\% of wrong SV calls overlap with LCRs.
+The error rate is further increased with the length of LCRs.
+In LCRs containing alleles longer than 2,000bp, the false positive and false negative rates reach 5.8--33.0\% and 7.8--53.7\%, respectively.
+\vspace{0.5em}\\
+\textbf{Conclusion:}
+SVs are enriched and challenging to call around LCRs.
+Special cares need to be taken for calling and analyzing SVs around long LCRs.
+\end{abstract}
+
+\begin{keywords}
+structural variant; low-complexity regions; evaluation
+\end{keywords}
+\end{frontmatter}
+
+%%% Key points will be printed at top of second page
+%\begin{keypoints*}
+%\begin{itemize}
+%\item This is the first point
+%\item This is the second point
+%\item One last point.
+%\end{itemize}
+%\end{keypoints*}
+
+\section{Introduction}
+
+Structural variants (SVs) are $\ge$50bp genomic variants
+and may have functional impacts~\cite{Eichler:2019aa}.
+Recent work based on high-quality long-read assemblies suggests
+there are broadly 25,000--35,000 SVs per human individual~\cite{Liao:2023aa,Logsdon:2025ab}.
+Constructed by the Genome-In-A-Bottle (GIAB) group,
+the latest SV benchmark HG002-Q100 v1.1 contains 28,188 SVs in 2.76Gb of confident regions, consistent with the recent counts.
+In contrast, published in 2020~\cite{Zook:2020aa}, the older HG002-SV benchmark v0.6 only contains 9,705 SVs in 2.66Gb.
+This seems to suggest $\sim$18,000 SVs would fall in $\sim$100Mb regions if we assume the SV v0.6 regions are contained in Q100 v1.1.
+Is this the correct interpretation?
+
+This article gives the answer:
+the differences between the two versions of the GIAB SV benchmarks
+are primarily driven by low-complexity regions (LCRs) that harbor repeatedly occurring motifs.
+The older benchmark excluded many of LCRs because it was hard to call them correctly.
+Although SV callers developers have noticed difficulties in calling SVs around LCRs~\cite{Zook:2020aa,Smolka:2024ab,Keskus:2025aa},
+they have not systematically quantified the effect of LCRs in SV calling.
+There is not a consensus on the number of SVs in LCRs or the error rate of them.
+Here, we identified LCRs jointly from the reference genome
+and the assemblies from the Human Pangenome Reference Consortium (HPRC)~\cite{Liao:2023aa},
+and evaluated their impact on SV calling with multiple callers.
+
+%Many SV callers have been developed~\cite{Kosugi:2019aa,Nardone:2025aa}
+%due to the biomedical importance of SVs~\cite{Eichler:2019aa}.
+%While callers based on short reads alone have been suggling with accuracy,
+%callers based on long reads have shown promising results~\cite{Wenger:2019ab,Pei:2024aa}.
+
+\section{Data Description}
+
+\subsection{Generating low-complexity regions}
+
+We applied longdust~\cite{Li:2025aa} to GRCh38 and identified 115.4Mb of LCRs on assembled chromosomes.
+We filtered about half of them that overlap with alpha and HSAT2/3 centromeric repeats found by dna-brnn~\cite{Li:2019aa}.
+34.4Mb of LCRs were left when we selected LCRs of 50bp or longer.
+
+GRCh38 only represents one human genome.
+It may miss polymorphic LCRs present in other human samples but missing from GRCh38.
+To look for these LCRs, we ran longdust on all 462 assemblies by HPRC
+and used the results to annotate variant bubbles in the minigraph graph of these assemblies~\cite{Li:2020aa}.
+A variant bubble was marked as an LCR if (a) $\ge$70\% of the sequences in the bubble were LCRs in the source assemblies, and
+(b) the sequences in the bubble were not annotated as segmental duplications (SegDup) by HPRC.
+Note that if an LCR falls in a long polymorphic SegDup, most of the sequences in the corresponding bubble will be annotated as SegDup but not LCRs.
+This is why we put SegDup at a higher priority over LCRs.
+To focus on common variants, we dropped non-GRCh38 alleles supported by $<$5 assemblies.
+We ignored HG002 when counting supports because we will use this sample for benchmarking later.
+
+We merged the common polymorphic LCRs and GRCh38 LCRs and added 5bp to both ends of each LCR.
+This resulted in a BED file with 111,067 records, covering 35.4Mb of GRCh38.
+29,291 records overlap with common polymorphic LCRs in the HPRC minigraph graph.
+3,918 of them are not observed on GRCh38.
+16.2\% of the LCRs are intersected with the SegDup annotation from the ``genomicSuperDups'' track of the UCSC Genome Browser~\cite{Perez:2025aa}.
+
+\subsection{Calling and evaluating structural variants}
+
+We acquired PacBio High-Fidelity (HiFi) reads from HPRC~\cite{hifi-read},
+aligned them to the primary assembly of GRCh38 with minimap2~\cite{Li:2018ab}
+and called SVs with
+cuteSV~\cite{Jiang:2020aa} v2.1.1,
+DeBreak~\cite{Chen:2023aa} v1.0.2,
+Delly~\cite{Rausch:2012aa} v1.3.3,
+longcallD~\cite{longcalld} v0.0.1,
+pbsv~\cite{pbsv} v2.11.0,
+Sawfish~\cite{Saunders:2025aa} v0.12.10,
+Severus~\cite{Keskus:2025aa} v0.1.2,
+Sniffles2~\cite{Smolka:2024ab} v2.2,
+SVDSS~\cite{Denti:2023aa} v2.1.0,
+SVIM~\cite{Heller:2019aa} v2.0.0
+and SVision-pro~\cite{Wang:2025aa} v2.4.
+Severus and Sniffles2 can optionally take tandem repeatitive regions as input.
+We tried this option and got lower sensitivity in LCRs.
+We thus used their default mode only.
+
+We took SVs from the HG002-Q100 v1.1 benchmark as the ground truth
+and evaluated the SV accuracy with truvari~\cite{English:2022aa} v5.2.1.
+Having explored multiple truvari options and inspected the evaluation results,
+we settled on ``{\tt bench -{}-passonly -{}-pick ac -{}-dup-to-ins}''
+followed by ``{\tt refine -{}-use-original-vcfs}''.
+Truvari requires allele sequences to normalize SVs at the base level.
+SVision-pro cannot output allele sequences and is thus dropped.
+
+The older HG002-SV v0.6 benchmark~\cite{Zook:2020aa} is only available for GRCh37.
+To evaluate the SV calling accuracy on this benchmark,
+we lifted its confident regions over to GRCh38
+but we still took SVs from HG002-Q100 as the ground truth.
+There are 11,985 HG002-Q100 overlapping with the lifted HG002-SV confident regions,
+more than the 9,705 SVs from the older HG002-SV benchmark.
+To understand difference, see the following example.
+Suppose both haplotypes in HG002 harbor a 6kb insertion to the same location of the reference genome.
+The inserted sequences however differ by one SNP between them.
+The newer HG002-Q100 benchmark
+would consider this event as two heterozygous insertions,
+but the older HG002-SV benchmark would merge the two insertion alleles and consider them as one homozyzgous insertion.
+As a result, we counted 7,362 insertions in HG002-Q100 v1.1 but only 5,444 in HG002-SV v0.6.
+Furthermore, the allele resolution may also affect deletions.
+If there are overlapping deletions of similar lengths between the two haplotypes,
+HG002-Q100 will encode them two independent deletions,
+but HG002-SV may merge them and thus reduce the total counts.
+Overall, constructed from long-read assemblies, HG002-Q100 is more precise and more accurate than HG002-SV.
+
+\section{Analyses}
+
+\subsection{Most SVs are located in LCRs}
+
+\begin{figure}[tb]
+\includegraphics[width=\columnwidth]{fig1}
+\caption{Number of HG002 structural variants (SVs) on GRCh38.
+(A) Number of SVs in the HG002-Q100 v1.1 confident regions,
+stratified by segmental duplications (SegDup),
+low-complexity regions (LCRs) and the rest of the genome.
+An SV is classified as SegDup (or LCR) if $\ge$70\% of its interval on GRCh38 overlap with SegDup (or LCR).
+An SV classified as SegDup will not be classified as LCR.
+(B) Number of HG002-Q100 SVs in the HG002-SV v0.6 confident regions lifted over from GRCh37.}\label{fig:count}
+\end{figure}
+
+We statified HG002 SVs by SegDup, LCR and Others (Fig.~\ref{fig:count}).
+We required $\ge$70\% of regions to overlap with SegDup or LCR.
+Without this condition, a long deletion containing a short LCR would be falsely classified as LCR.
+Similar to the generation of LCRs, an SV was classified as SegDup and LCR as a SegDup if it overlaps with both SegDup and LCR.
+Out of 2,110 SegDup SVs in the HG002-Q100 truth set, 1,701 could be annotated as LCR if we prioritized on LCR first.
+The majority of SegDup SVs are also LCR.
+
+Whereas the numbers of ``Other'' SVs in the HG002-Q100 confident regions are similar across callers,
+the numbers of LCR SVs differ greatly (Fig.~\ref{fig:count}A).
+SV callers that attempt to produce haplotype-resolved SVs, such as longcallD and SVDSS, call noticeably more SVs in LCR and SegDup.
+This trend is also observed in the older HG002-SV v0.6 confident regions (Fig.~\ref{fig:count}B).
+However, there are much fewer SVs in LCR and almost none in SegDup, although the numbers of SVs
+in Other regions are only reduced a little.
+
+\subsection{SVs in LCRs are harder to call correctly}
+
+We evaluated the accuracy of SV calls with truvari
+and stratified false positive and false negative errors by SegDup and LCR as well.
+The errors in SegDup and LCR are further amplified.
+
+\begin{figure}[tb]
+\includegraphics[width=\columnwidth]{fig2}
+\caption{Accuracy of SV calls.
+(A) False discovery rate (FDR) of SVs in the HG002-Q100 confident regions.
+Accuracy is measured by truvari with command line ``{\tt bench -{}-passonly -{}-pick ac -{}-dup-to-ins}''
+followed by ``{\tt refine -{}-use-original-vcfs}''.
+(B) False negative rate (FNR) of SVs in HG002-Q100.
+(C) FDR in the HG002-SV confident regions.
+(D) FNR in HG002-SV.}\label{fig:acc}
+\end{figure}
+
+%\section{Declarations}
+%
+%\subsection{List of abbreviations}
+%If abbreviations are used in the text they should be defined in the text at first use, and a list of abbreviations should be provided in alphabetical order.
+%
+%\subsection{Ethical Approval (optional)}
+%Manuscripts reporting studies involving human participants, human data or human tissue must:
+%
+%\begin{itemize}
+%\item include a statement on ethics approval and consent (even where the need for approval was waived)
+%\item include the name of the ethics committee that approved the study and the committee's reference number if appropriate
+%\end{itemize}
+%
+%Studies involving animals must include a statement on ethics approval and have been treated in a humane manner in line with the \href{http://www.nc3rs.org.uk/arrive-guidelines}{ARRIVE guidelines}.
+%
+%See our \href{https://academic.oup.com/gigascience/pages/editorial_policies_and_reporting_standards}{editorial policies} for more information.
+%
+%If your manuscript does not report on or involve the use of any animal or human data or tissue, this section is not applicable to your submission. Please state ``Not applicable'' in this section.
+%
+%\subsection{Consent for publication}
+%
+%If your manuscript contains any individual person's data in any form, consent to publish must be obtained from that person, or in the case of children, their parent or legal guardian. All presentations of case reports must have consent to publish. You can use your institutional consent form. You should not send the form to us on submission, but we may request to see a copy at any stage (including after publication). Please also confirm you have followed national guidelines on data collection and release in the place the research was carried out, for example confirming you have Ministry of Science and Technology (MOST) approval in China.
+%
+%If your manuscript does not contain any individual person's data, please state ``Not applicable'' in this section.
+%
+\subsection{Competing Interests}
+
+The author declares they have no competing interests.
+
+\subsection{Funding}
+
+This work is supported by National Institute of Health grant R01HG010040, U01HG013748 and U41HG010972 (to H.L.).
+
+\subsection{Author's Contributions}
+
+H.L. conceived the project.
+Q.Q and H.L. analyzed the data and drafted the manuscript.
+
+\section{Acknowledgements}
+
+\bibliography{lcr-sv}
+
+\end{document}
