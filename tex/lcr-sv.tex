@@ -87,7 +87,7 @@ and may have functional impacts~\cite{Eichler:2019aa}.
 Recent work based on high-quality long-read assemblies suggests
 there are broadly 25,000--35,000 SVs per human individual~\cite{Liao:2023aa,Logsdon:2025ab}.
 Constructed by the Genome-In-A-Bottle (GIAB) group,
-the latest SV benchmark HG002-Q100 v1.1 contains 28,188 SVs in 2.76Gb of confident regions, consistent with the recent counts.
+the latest SV benchmark HG002-Q100 v1.1~\cite{Hansen2025.09.21.677443} contains 28,188 SVs in 2.76Gb of confident regions, consistent with the recent counts.
 In contrast, published in 2020~\cite{Zook:2020aa}, the older HG002-SV benchmark v0.6 only contains 9,705 SVs in 2.66Gb.
 This seems to suggest $\sim$18,000 SVs would fall in $\sim$100Mb regions if we assume the SV v0.6 regions are contained in Q100 v1.1.
 Is this the correct interpretation?
@@ -96,7 +96,7 @@ This article gives the answer:
 the differences between the two versions of the GIAB SV benchmarks
 are primarily driven by low-complexity regions (LCRs) that harbor repeatedly occurring motifs.
 The older benchmark excluded many of LCRs because it was hard to call them correctly.
-Although SV callers developers have noticed difficulties in calling SVs around LCRs~\cite{Zook:2020aa,Smolka:2024ab,Keskus:2025aa},
+Although SV callers developers have noticed the difficulties in calling SVs around LCRs~\cite{Zook:2020aa,Smolka:2024ab,Keskus:2025aa},
 they have not systematically quantified the effect of LCRs in SV calling.
 There is not a consensus on the number of SVs in LCRs or the error rate of them.
 Here, we identified LCRs jointly from the reference genome
@@ -133,33 +133,13 @@ This resulted in a BED file with 111,067 records, covering 35.4Mb of GRCh38.
 3,918 of them are not observed on GRCh38.
 16.2\% of the LCRs are intersected with the SegDup annotation from the ``genomicSuperDups'' track of the UCSC Genome Browser~\cite{Perez:2025aa}.
 
-\subsection{Calling and evaluating structural variants}
+\subsection{Investigating the GIAB truth SVs}
 
-We acquired PacBio High-Fidelity (HiFi) reads from HPRC~\cite{hifi-read},
-aligned them to the primary assembly of GRCh38 with minimap2~\cite{Li:2018ab}
-and called SVs with
-cuteSV~\cite{Jiang:2020aa} v2.1.1,
-DeBreak~\cite{Chen:2023aa} v1.0.2,
-Delly~\cite{Rausch:2012aa} v1.3.3,
-longcallD~\cite{longcalld} v0.0.1,
-pbsv~\cite{pbsv} v2.11.0,
-Sawfish~\cite{Saunders:2025aa} v0.12.10,
-Severus~\cite{Keskus:2025aa} v0.1.2,
-Sniffles2~\cite{Smolka:2024ab} v2.2,
-SVDSS~\cite{Denti:2023aa} v2.1.0,
-SVIM~\cite{Heller:2019aa} v2.0.0
-and SVision-pro~\cite{Wang:2025aa} v2.4.
-Severus and Sniffles2 can optionally take tandem repeatitive regions as input.
-We tried this option and got lower sensitivity in LCRs.
-We thus used their default mode only.
-
-We took SVs from the HG002-Q100 v1.1 benchmark as the ground truth
-and evaluated the SV accuracy with truvari~\cite{English:2022aa} v5.2.1.
-Having explored multiple truvari options and inspected the evaluation results,
-we settled on ``{\tt bench -{}-passonly -{}-pick ac -{}-dup-to-ins}''
-followed by ``{\tt refine -{}-use-original-vcfs}''.
-Truvari requires allele sequences to normalize SVs at the base level.
-SVision-pro cannot output allele sequences and is thus dropped.
+There are 29,131 SVs of $\ge$50bp in length contained in the confident regions in the new HG002-Q100 v1.1 benchmark~\cite{Hansen2025.09.21.677443}.
+943 of them have ``*'' as alternate alleles.
+We manually inspected the read alignment around some of these SVs and believe they are all redundant.
+Removing them from the truth left us with 28,188 SVs.
+The truvari~\cite{English:2022aa} evaluation tool also filters SVs with ``*'' alleles.
 
 The older HG002-SV v0.6 benchmark~\cite{Zook:2020aa} is only available for GRCh37.
 To evaluate the SV calling accuracy on this benchmark,
@@ -167,18 +147,40 @@ we lifted its confident regions over to GRCh38
 but we still took SVs from HG002-Q100 as the ground truth.
 There are 11,985 HG002-Q100 overlapping with the lifted HG002-SV confident regions,
 more than the 9,705 SVs from the older HG002-SV benchmark.
-To understand difference, see the following example.
+The difference is caused by the allele resolution.
 Suppose both haplotypes in HG002 harbor a 6kb insertion to the same location of the reference genome.
 The inserted sequences however differ by one SNP between them.
 The newer HG002-Q100 benchmark
 would consider this event as two heterozygous insertions,
 but the older HG002-SV benchmark would merge the two insertion alleles and consider them as one homozyzgous insertion.
 As a result, we counted 7,362 insertions in HG002-Q100 v1.1 but only 5,444 in HG002-SV v0.6.
-Furthermore, the allele resolution may also affect deletions.
+The allele resolution may also affect deletions.
 If there are overlapping deletions of similar lengths between the two haplotypes,
 HG002-Q100 will encode them two independent deletions,
 but HG002-SV may merge them and thus reduce the total counts.
 Overall, constructed from long-read assemblies, HG002-Q100 is more precise and more accurate than HG002-SV.
+
+\subsection{Calling structural variants}
+
+We acquired PacBio High-Fidelity (HiFi) reads from HPRC~\cite{hifi-read},
+aligned them to the primary assembly of GRCh38 with minimap2~\cite{Li:2018ab}
+and called SVs with
+cuteSV v2.1.1~\cite{Jiang:2020aa},
+DeBreak v1.0.2~\cite{Chen:2023aa},
+Delly v1.3.3~\cite{Rausch:2012aa},
+longcallD v0.0.5~\cite{longcalld},
+pbsv v2.11.0~\cite{pbsv},
+Sawfish v0.12.10~\cite{Saunders:2025aa},
+Severus v1.6~\cite{Keskus:2025aa},
+Sniffles2 v2.6.3~\cite{Smolka:2024ab},
+SVDSS v2.1.0~\cite{Denti:2023aa},
+SVIM v2.0.0~\cite{Heller:2019aa}
+and SVision-pro v2.4~\cite{Wang:2025aa}.
+We dropped SVision-pro because it did not output SV alleles.
+Severus under several settings all called $\sim$40\% fewer SVs in LCR than other callers.
+We excluded it as an outlier.
+Sniffles2 could optionally take tandem repeatitive regions as input,
+but using this option slightly reduced its overall accuracy, so we only evaluated its default setting.
 
 \section{Analyses}
 
@@ -195,7 +197,7 @@ An SV classified as SegDup will not be classified as LCR.
 (B) Number of HG002-Q100 SVs in the HG002-SV v0.6 confident regions lifted over from GRCh37.}\label{fig:count}
 \end{figure}
 
-We statified HG002 SVs by SegDup, LCR and Others (Fig.~\ref{fig:count}).
+We statified HG002 SVs by SegDup and LCR (Fig.~\ref{fig:count}).
 We required $\ge$70\% of regions to overlap with SegDup or LCR.
 Without this condition, a long deletion containing a short LCR would be falsely classified as LCR.
 Similar to the generation of LCRs, an SV was classified as SegDup and LCR as a SegDup if it overlaps with both SegDup and LCR.
@@ -208,23 +210,41 @@ SV callers that attempt to produce haplotype-resolved SVs, such as longcallD and
 This trend is also observed in the older HG002-SV v0.6 confident regions (Fig.~\ref{fig:count}B).
 However, there are much fewer SVs in LCR and almost none in SegDup, although the numbers of SVs
 in Other regions are only reduced a little.
+The main difference between HG002-Q100 and HG002-SV comes from LCRs.
 
 \subsection{SVs in LCRs are harder to call correctly}
 
-We evaluated the accuracy of SV calls with truvari
-and stratified false positive and false negative errors by SegDup and LCR as well.
-The errors in SegDup and LCR are further amplified.
-
-\begin{figure}[tb]
+\begin{figure}[!tb]
 \includegraphics[width=\columnwidth]{fig2}
 \caption{Accuracy of SV calls.
-(A) False discovery rate (FDR) of SVs in the HG002-Q100 confident regions.
-Accuracy is measured by truvari with command line ``{\tt bench -{}-passonly -{}-pick ac -{}-dup-to-ins}''
-followed by ``{\tt refine -{}-use-original-vcfs}''.
+(A) False discovery rate (FDR) of SVs in the HG002-Q100 confident regions, measured by truvari in the ``refine'' mode.
 (B) False negative rate (FNR) of SVs in HG002-Q100.
 (C) FDR in the HG002-SV confident regions.
 (D) FNR in HG002-SV.}\label{fig:acc}
 \end{figure}
+
+We evaluated SV calls with truvari v5.3.0~\cite{English:2022aa}.
+Having explored multiple truvari options,
+we settled on ``{\tt bench -{}-passonly -{}-pick ac -{}-dup-to-ins}''
+followed by ``{\tt refine -{}-use-original-vcfs}''
+as the resulting accuracy matched our manual inspection better.
+We also stratified SV calling errors by SegDup and LCR (Fig.~\ref{fig:acc}).
+
+On the new HG002-Q100 truth, 31.1--39.0\% of SVs are marked as ``Other'' (Fig.~\ref{fig:count}A),
+but only 5.2--14.0\% of SV errors come from ``Other'' (Fig.~\ref{fig:acc}A and \ref{fig:acc}B).
+This suggests the Other category is easier to call.
+The majority of errors are located in LCRs.
+Although the error rate is further increased in SegDup,
+recall that the majority of SVs in SegDup fall in 
+
+\begin{figure}[tb]
+\includegraphics[width=\columnwidth]{lcr-01}
+\caption{IGV screenshot of alignment around an LCR.
+The top panel shows the raw alignment by minimap2.
+The bottom panel shows the phased realignment by longcallD.
+}\label{fig:ex}
+\end{figure}
+
 
 %\section{Declarations}
 %
