@@ -51,19 +51,18 @@
 \maketitle
 \begin{abstract}
 \textbf{Background:}
-Strcutural variants (SVs) refer to genomic differences between individuals that are $\ge$50bp in length.
-They have profound influences on pheonotypes but are challenging to call even with long sequence reads.
+Structural variants (SVs) are genomic differences $\ge$50 bp in length.
+They remain challenging to detect even with long sequence reads, and the sources of these difficulties are not well quantified.
 \vspace{0.5em}\\
 \textbf{Results:}
-We evaluated the SV calling accuracy of several long-read SV callers, taking the latest HG002-Q100 benchmark as the ground truth.
-We found that of $\sim$28,000 SVs in the confident regions of HG002, 69.1\% overlap with low-complexity regions (LCRs) covering 1.2\% of GRCh38.
-Depending on long-read SV callers, 77.3--91.3\% of wrong SV calls overlap with LCRs.
-The error rate is further increased with the length of LCRs.
-In LCRs containing alleles longer than 2,000bp, the false positive and false negative rates reach 5.8--33.0\% and 7.8--53.7\%, respectively.
+We identified 35.4 Mb of low-complexity regions (LCRs) in GRCh38. Although
+these regions cover only 1.2\% of the genome, they contain 69.1\% of confident
+SVs in sample HG002. Across long-read SV callers, 77.3--91.3\% of erroneous
+SV calls occur within LCRs, with error rates increasing with LCR length.
 \vspace{0.5em}\\
 \textbf{Conclusion:}
-SVs are enriched and challenging to call around LCRs.
-Special cares need to be taken for calling and analyzing SVs around long LCRs.
+SVs are enriched and difficult to call in LCRs.
+Special care need to be taken for calling and analyzing these variants.
 \end{abstract}
 
 \begin{keywords}
@@ -118,11 +117,11 @@ We filtered about half of them that overlap with alpha and HSAT2/3 centromeric r
 
 GRCh38 only represents one human genome.
 It may miss polymorphic LCRs present in other human samples but missing from GRCh38.
-To look for these LCRs, we ran longdust on all 462 assemblies by HPRC
+To look for these LCRs, we ran longdust on all 462 assemblies from HPRC
 and used the results to annotate variant bubbles in the minigraph graph of these assemblies~\cite{Li:2020aa}.
 A variant bubble was marked as an LCR if (a) $\ge$70\% of the sequences in the bubble were LCRs in the source assemblies, and
 (b) the sequences in the bubble were not annotated as segmental duplications (SegDup) by HPRC.
-Note that if an LCR falls in a long polymorphic SegDup, most of the sequences in the corresponding bubble will be annotated as SegDup but not LCRs.
+Note that if an LCR falls in a long polymorphic SegDup, most of the sequences in the corresponding bubble will be annotated as SegDup but not as LCR.
 This is why we put SegDup at a higher priority over LCRs during annotation.
 To focus on common variants, we dropped non-GRCh38 alleles supported by $<$5 assemblies.
 We ignored HG002 when counting alleles because we will use this sample for benchmarking later.
@@ -134,10 +133,10 @@ This resulted in a BED file with 111,067 records, covering 35.4Mb of GRCh38.
 16.2\% of the LCRs are intersected with the SegDup annotation from the ``genomicSuperDups'' track of the UCSC Genome Browser~\cite{Perez:2025aa}.
 We see the overlap because an LCR consisting of several copies of a long repeat unit could also be considered as a SegDup.
 
-We applied the same pocedure to the T2T-CHM13 genome~\cite{Nurk:2022up}
+We applied the same procedure to the T2T-CHM13 genome~\cite{Nurk:2022up}
 and found 79.6Mb of LCRs, doubling the length of LCRs in GRCh38.
-Most of the additional regions came from centromeric satellites that are HSAT2/3 or alpha repeats.
-If we excluded all types of satellites~\cite{Altemose:2022tv}, only 31.2Mb remained,
+Most of the additional regions came from centromeric satellites that are not HSAT2/3 or alpha repeats.
+If we exclude all types of satellites~\cite{Altemose:2022tv}, only 31.2Mb will remain,
 comparable to the length of LCRs in GRCh38.
 
 \section{Data Analysis}
@@ -156,7 +155,7 @@ We manually inspected the read alignment around some of these SVs and believe th
 Removing them from the truth left us with 28,188 SVs.
 The truvari~\cite{English:2022aa} evaluation tool also filters SVs with ``*'' alleles.
 
-The older HG002-SV v0.6 benchmark~\cite{Zook:2020aa} is only available for GRCh37.
+The older HG002-SV v0.6 benchmark~\cite{Zook:2020aa} is only available in the GRCh37 coordinate.
 To evaluate the SV calling accuracy on this benchmark,
 we lifted its confident regions over to GRCh38
 but we still took SVs from HG002-Q100 as the ground truth.
@@ -167,8 +166,8 @@ Suppose both haplotypes in HG002 harbor a 6kb insertion to the same location of 
 The inserted sequences however differ by one SNP between them.
 The newer HG002-Q100 benchmark
 would consider this event as two heterozygous insertions,
-but the older HG002-SV benchmark would merge the two insertion alleles and consider them as one homozyzgous insertion.
-As a result, we counted 7,362 insertions in HG002-Q100 v1.1 but only 5,444 in HG002-SV v0.6.
+but the older HG002-SV benchmark would merge the two insertion alleles and consider them as one homozygous insertion.
+As a result, we counted 7,362 insertions in HG002-Q100 v1.1 but only 5,444 in HG002-SV v0.6, a sharp reduction.
 At the same time, the allele resolution may also affect deletions.
 If there are overlapping deletions of similar lengths between the two haplotypes,
 HG002-Q100 will encode them two independent deletions,
@@ -223,7 +222,7 @@ SVs are stratified to LCR, SegDup and Other in the same way as is described in F
 (D) FNR in HG002-SV.}\label{fig:acc}
 \end{figure}
 
-We statified HG002 SVs by LCR and SegDup (Fig.~\ref{fig:count}).
+We stratified HG002 SVs by LCR and SegDup (Fig.~\ref{fig:count}).
 For an SV to be classified as LCR or SegDup, we required it to have large overlap with LCR or SegDup regions.
 Without this condition, a long deletion containing a short LCR would be falsely classified as LCR, which would inflate the number of LCR SVs.
 Across the SV callers, 59.4--67.7\% of SV calls overlap with LCR, although LCR only accounts for 1.2\% of GRCh38.
@@ -233,9 +232,9 @@ Whereas the numbers of ``Other'' SVs in the HG002-Q100 confident regions are sim
 the numbers of LCR SVs differ greatly (Fig.~\ref{fig:count}B).
 SV callers that attempt to produce haplotype-resolved SVs, such as longcallD and SVDSS, call noticeably more SVs in LCR and SegDup.
 This trend is also observed in the older HG002-SV v0.6 confident regions (Fig.~\ref{fig:count}C).
-However, there are much fewer SVs in LCR and almost none in SegDup, although the numbers of SVs
+In the older HG002-SV regions, there are much fewer SVs in LCR and almost none in SegDup, although the numbers of SVs
 in Other regions are only reduced a little.
-The main difference between HG002-Q100 and HG002-SV comes from LCRs.
+This indicates that the main difference between HG002-Q100 and HG002-SV comes from LCRs.
 
 \subsection{SVs in LCRs are harder to call correctly}
 
@@ -246,7 +245,7 @@ followed by ``{\tt refine -{}-use-original-vcfs}''
 as the resulting accuracy matched our manual inspection better.
 We also stratified SV calling errors by SegDup and LCR (Fig.~\ref{fig:acc}).
 
-On the new HG002-Q100 benchmark, 31.1--39.0\% of SVs, depending callers, are marked as ``Other'' (Fig.~\ref{fig:count}B),
+On the new HG002-Q100 benchmark, 31.1--39.0\% of SVs, depending on callers, are marked as ``Other'' (Fig.~\ref{fig:count}B),
 but only 5.2--14.0\% of SV errors come from ``Other'' (Fig.~\ref{fig:acc}A and \ref{fig:acc}B).
 This suggests SVs in the Other category are easier to call.
 In contrast, the majority of errors, at 77.3--91.3\%, are located in LCRs.
@@ -307,8 +306,8 @@ and they may
 also mediate gene expression~\cite{Bakhtiari:2021aa,Lu:2023aa}.
 We would not want to filter all SVs overlapping LCRs.
 
-For data analysts, we recommend stratifying SVs by LCR using the regions we generated
-because LCR SVs are enriched with errors and are probably resulted from different biological processes.
+For data analysts, we recommend stratifying SVs by LCR
+as LCR SVs are enriched with errors and are resulted from different biological processes.
 For developers, we would like to emphasize the critical role of realignment or local reassembly in accurate SV calling.
 Most SVs in LCRs can still be called to decent accuracy with good algorithms.
 
@@ -317,7 +316,7 @@ the reads with haplotype-resolved assemblers~\cite{Cheng:2021aa,Rautiainen:2023a
 and call variants from assembly-to-reference alignment~\cite{Li:2018aa}.
 Performing phasing and alignment within each haplotype,
 these assemblers are more powerful than most SV callers.
-As a matter of fact, the HG002-Q100 truth was derived in this way.
+As a matter of fact, the HG002-Q100 truth was derived this way.
 
 We have only analyzed one human sample in this article.
 If mainstream SV callers are already struggling with long LCRs,
@@ -327,7 +326,7 @@ calling variants across samples with pangenome-based methods~\cite{Li:2020aa,Hic
 will be the preferred approach as conducting multi-sequence alignment across samples,
 such methods can produce more consistent SV representations.
 They may also struggle with highly variable LCRs,
-but will do better than traditional SV merging.
+but will do better than traditional SV merging in most cases.
 
 \section{Data Availability}
 
