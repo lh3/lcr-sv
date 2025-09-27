@@ -1,10 +1,11 @@
-set t po eps co so "Helvetica,20"
+set t po eps co so "Helvetica,22"
 
 # adapted from https://stackoverflow.com/questions/31896718/generation-of-pie-chart-using-gnuplot
 
-set linetype 1 lc rgb "#56b4e9" lw 1
-set linetype 1 lc rgb "#e69f00" lw 1
-set linetype 3 lc rgb "#9400d3" lw 1
+set linetype 1 lc rgb "#b0b0b0" lw 1
+set linetype 2 lc rgb "#009e73" lw 1
+set linetype 3 lc rgb "#e69f00" lw 1
+set linetype 4 lc rgb "#9400d3" lw 1
 
 set out "test.eps"
 
