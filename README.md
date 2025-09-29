@@ -14,7 +14,7 @@ bedtk flt -vcf.7 hg38.lcr-v4.bed.gz var.vcf.gz
 k8 scripts/truvari-count.js truvari-out-dir hg38.lcr-v4.bed.gz
 ```
 
-Data files and GNUplot scripts in the [plots/](plots) directory generate plots
+GNUplot scripts in the [plots/](plots) directory generate plots
 in the preprint. Scripts in [gen/](gen) log the process to generate
 low-complexity regions on GRCh38 and CHM13. They are not meant for enduers to
 run.
