@@ -1,4 +1,4 @@
-[![Resource](https://img.shields.io/badge/resource-10.5281/zenodo.10903864-blue)](https://doi.org/10.5281/zenodo.10903864)
+[![Resource](https://img.shields.io/badge/resource-10.5281/zenodo.10903864-blue)][zenodo]
 
 ```sh
 # Download low-complexity regions (LCRs) for GRCh38
@@ -18,3 +18,9 @@ Data files and GNUplot scripts in the [plots/](plots) directory generate plots
 in the preprint. Scripts in [gen/](gen) log the process to generate
 low-complexity regions on GRCh38 and CHM13. They are not meant for enduers to
 run.
+
+Data files are released under CC0 [at Zenodo][zenodo] (file
+`hg38.lcr-v4.bed.gz` and `chm13v2.0.lcr-v4.bed.gz`). Source code are covered by
+the MIT license.
+
+[zenodo]: https://doi.org/10.5281/zenodo.10903864
