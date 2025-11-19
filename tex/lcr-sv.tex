@@ -62,7 +62,7 @@ SV calls occur within LCRs, with error rates increasing with LCR length.
 \vspace{0.5em}\\
 \textbf{Conclusion:}
 SVs are enriched and difficult to call in LCRs.
-Special care need to be taken for calling and analyzing these variants.
+Special care needs to be taken for calling and analyzing these variants.
 \end{abstract}
 
 \begin{keywords}
@@ -91,7 +91,7 @@ In contrast, published in 2020~\cite{Zook:2020aa}, the older HG002-SV benchmark 
 This seems to suggest $\sim$18,000 SVs would fall in $\sim$100Mb regions if we assume the SV v0.6 regions are contained in Q100 v1.1.
 Is this the correct interpretation?
 
-This article gives the answer:
+This article shows that
 the differences between the two versions of the GIAB SV benchmarks
 are primarily driven by low-complexity regions (LCRs) that harbor repeatedly occurring motifs.
 The older benchmark excluded many of LCRs because it was hard to call them correctly.
@@ -126,26 +126,33 @@ This is why we put SegDup at a higher priority over LCRs during annotation.
 To focus on common variants, we dropped non-GRCh38 alleles supported by $<$5 assemblies.
 We ignored HG002 when counting alleles because we will use this sample for benchmarking later.
 
-We merged the common polymorphic LCRs and GRCh38 LCRs and added 5bp to both ends of each LCR.
+We merged the common polymorphic LCRs and GRCh38 LCRs and added 5bp to both ends of each LCR
+because LCR boundaries may not be exact and insertions are often placed right before exact tandem repeats by convention.
 This resulted in a BED file with 111,067 records, covering 35.4Mb of GRCh38.
 29,291 records overlap with common polymorphic LCRs in the HPRC minigraph graph.
 3,918 of them are not observed on GRCh38.
 16.2\% of the LCRs are intersected with the SegDup annotation from the ``genomicSuperDups'' track of the UCSC Genome Browser~\cite{Perez:2025aa}.
 We see the overlap because an LCR consisting of several copies of a long repeat unit could also be considered as a SegDup.
 
+LCRs are closely related to tandem repeats.
+Longdust identifies most tandem repeats with $\ge$4 copies of repeat units as LCRs~\cite{Li:2020aa},
+but it often misses tandem repeats with fewer copies and may report additional regions without clear tandem patterns.
+83.5\% of our LCR regions overlap with tandem repeats found by TRF~\citep{Benson:1999aa} v4.10 (option {\tt 2 7 7 80 10 50 500 -l12})
+and 92.0\% overlap with TR Catalog~\citep{English:2025aa} v1.2.1 which covers 238Mb of GRCh38, much larger than our regions.
+
 We applied the same procedure to the T2T-CHM13 genome~\cite{Nurk:2022up}
 and found 79.6Mb of LCRs, doubling the length of LCRs in GRCh38.
 Most of the additional regions came from centromeric satellites that are not HSAT2/3 or alpha repeats.
-If we exclude all types of satellites~\cite{Altemose:2022tv}, only 31.2Mb will remain,
-comparable to the length of LCRs in GRCh38.
+If we exclude all types of satellites~\cite{Altemose:2022tv}, only 31.2Mb is left.
+The remaining difference in size from GRCh38 LCRs is probably caused by satellite annotation.
 
 \section{Data Analysis}
 
 To understand the effect of LCRs in long-read SV calling,
 we measured the accuracy of SV calls stratified by LCR.
 We called SVs with 11 callers and compared them to both the new HG002-Q100 v1.1~\cite{Hansen2025.09.21.677443}
-and the old HG002-SV v0.6~\cite{Zook:2020aa} benchmarks.
-We will also explain caveats in the truth data.
+and the old HG002-SV v0.6~\cite{Zook:2020aa} benchmarks
+to demonstraate the impact of LCR in SV calling.
 
 \subsection{Investigating the GIAB truth SVs}
 
@@ -157,8 +164,8 @@ The truvari~\cite{English:2022aa} evaluation tool also filters SVs with ``*'' al
 
 The older HG002-SV v0.6 benchmark~\cite{Zook:2020aa} is only available in the GRCh37 coordinate.
 To evaluate the SV calling accuracy on this benchmark,
-we lifted its confident regions over to GRCh38
-but we still took SVs from HG002-Q100 as the ground truth.
+we lifted its confident regions over to GRCh38 with UCSC's liftover web service which failed on 0.03\% of intervals.
+We still took SVs from HG002-Q100 as the ground truth.
 There are 11,985 HG002-Q100 overlapping with the lifted HG002-SV confident regions,
 more than the 9,705 SVs from the older HG002-SV benchmark.
 The difference is caused by the allele resolution.
@@ -185,17 +192,19 @@ Delly v1.3.3~\cite{Rausch:2012aa},
 longcallD v0.0.5~\cite{longcalld},
 pbsv v2.11.0~\cite{pbsv},
 Sawfish v0.12.10~\cite{Saunders:2025aa},
-Severus v1.6~\cite{Keskus:2025aa},
 Sniffles2 v2.6.3~\cite{Smolka:2024ab},
 SVDSS v2.1.0~\cite{Denti:2023aa},
-SVIM v2.0.0~\cite{Heller:2019aa}
-and SVision-pro v2.4~\cite{Wang:2025aa}.
+and SVIM v2.0.0~\cite{Heller:2019aa}.
 We used kanpig v1.1.0~\cite{English:2025aa} for genotyping SVs called by SVDSS as is suggested in the documentation.
-We dropped SVision-pro because it did not output SV alleles and is thus incompatible with the evaluation tool.
-Severus under several settings all called $\sim$40\% fewer SVs in LCRs than other callers.
-We excluded it as an outlier.
+%Severus under several settings all called $\sim$40\% fewer SVs in LCRs than other callers.
+%We excluded it as an outlier.
 Sniffles2 may optionally take tandem repeatitive regions as input,
 but using this option slightly reduced its overall accuracy, so we only evaluated its default setting.
+
+We also tried specialized tandem repeat callers including TRGT~\citep{Dolzhenko:2024aa} and ATaRVa~\citep{Sivakumar2025.05.13.653434}.
+These tools may output both long reference and long alternate alleles for one variant.
+Truvari was unable to process such variants and greatly overestimated the false positives.
+We thus did not include tandem repeat callers in this work.
 
 \subsection{Most SVs are located in LCRs}
 
@@ -225,8 +234,10 @@ SVs are stratified to LCR, SegDup and Other in the same way as is described in F
 We stratified HG002 SVs by LCR and SegDup (Fig.~\ref{fig:count}).
 For an SV to be classified as LCR or SegDup, we required it to have large overlap with LCR or SegDup regions.
 Without this condition, a long deletion containing a short LCR would be falsely classified as LCR, which would inflate the number of LCR SVs.
-Across the SV callers, 59.4--67.7\% of SV calls overlap with LCR, although LCR only accounts for 1.2\% of GRCh38.
+Across the SV callers, 59.4--67.7\% of SV calls overlap with LCR, although LCR only accounts for 1.2\% of GRCh38 or 0.9\% of GIAB confident regions.
 SVs are highly enriched in LCR.
+On the ground truth, SVs in LCR contributed to 42.1\% of total SV lengths.
+This suggests these SVs are shorter than the average.
 
 Whereas the numbers of ``Other'' SVs in the HG002-Q100 confident regions are similar across callers,
 the numbers of LCR SVs differ greatly (Fig.~\ref{fig:count}B).
@@ -238,12 +249,12 @@ This indicates that the main difference between HG002-Q100 and HG002-SV comes fr
 
 \subsection{SVs in LCRs are harder to call correctly}
 
-We evaluated SV calls with truvari v5.3.0~\cite{English:2022aa}.
+We evaluated SV calls with truvari v5.3.0~\cite{English:2022aa},
+which performs multi-sequence alignment to normalize different variant representations.
 Having explored multiple truvari options,
 we settled on ``{\tt bench -{}-passonly -{}-pick ac -{}-dup-to-ins}''
 followed by ``{\tt refine -{}-use-original-vcfs}''
 as the resulting accuracy matched our manual inspection better.
-We also stratified SV calling errors by SegDup and LCR (Fig.~\ref{fig:acc}).
 
 On the new HG002-Q100 benchmark, 31.1--39.0\% of SVs, depending on callers, are marked as ``Other'' (Fig.~\ref{fig:count}B),
 but only 5.2--14.0\% of SV errors come from ``Other'' (Fig.~\ref{fig:acc}A and \ref{fig:acc}B).
@@ -263,10 +274,10 @@ identical to the HG002-Q100 ground truth.
 }\label{fig:ex}
 \end{figure}
 
-Developed in our group, longcallD achieves the lowest error rate (Fig.~\ref{fig:acc})
+Developed in our group but unpublished, longcallD achieves the lowest error rate (Fig.~\ref{fig:acc})
 mainly because it performs haplotype-aware multi-sequence realignment.
-As is shown in the top panel of Fig.~\ref{fig:ex}, minimap2 often produces inconsistent read alignment in long LCRs
-when it does not see other reads in the same region during pairwise alignment.
+As is shown in the top panel of Fig.~\ref{fig:ex}, minimap2 often places gaps differently across reads and thus produces inconsistent alignment in long LCRs.
+This happens because minimap2 does not see other reads in the same region during pairwise alignment.
 It is not apparent that there are only two haplotypes in this region.
 Such inconsistency would confuse most SV callers.
 For this example, the SV callers in the order shown in Fig.~\ref{fig:acc}, respectively, called
@@ -275,8 +286,6 @@ For this example, the SV callers in the order shown in Fig.~\ref{fig:acc}, respe
 Only longcallD and SVDSS found the precise allele lengths of +1650/+1290.
 Nonetheless, truvari considered all callers correct.
 The error rate of most callers would probably be higher if we required precise allele matches.
-
-%LongcallD instead phased most reads to two haplotypes and produced a much cleaner realignment in the bottle panel.
 
 \begin{figure}[tb]
 \includegraphics[width=\columnwidth]{fig4}
@@ -300,6 +309,7 @@ LCR SVs are a distinct class.
 Although LCRs only contribute to 1.2\% of GRCh38 excluding alpha and HSAT2/3 repeats,
 they harbor more than half of long-read SV calls and an even higher fraction of SV calling errors.
 These errors are mainly caused by inconsistent read alignment especially around long LCRs.
+Short-read SV calling may be affected more due to uncertainty in alignment around LCRs.
 On the other hand, we note that LCRs may overlap with coding exons of genes that have functional impacts~\cite{Mukamel:2021aa}
 and they may
 %124 of these genes, including 11 mucin genes and 20 zinc fingers, overlap with LCRs containing low-complexity alleles of 2kb or longer.
