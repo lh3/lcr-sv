@@ -156,7 +156,7 @@ function* k8_readline(fn) {
  * main function *
  *****************/
 
-function count(fn, bed, label, min_frac) {
+function count(fn, bed, label, opt) {
 	let cnt = [];
 	for (let i = 0; i < bed.length * 2 + 2; ++i)
 		cnt[i] = 0;
@@ -164,6 +164,12 @@ function count(fn, bed, label, min_frac) {
 		if (line[0] == "#") continue;
 		let m, t = line.split("\t");
 		if (!/^([A-Za-z]+|<(DEL|DUP)\S*>)$/.test(t[4])) continue; // ignore if sequence is not resolved
+		const indel = t[4].length - t[3].length;
+		if (opt.eval_ins) {
+			if (indel <= 0) continue;
+		} else if (opt.eval_del) {
+			if (indel >= 0) continue;
+		}
 		const ctg = t[0];
 		const st = parseInt(t[1]) - 1;
 		const en = (m = /\bEND=(\d+)/.exec(t[7])) != null? parseInt(m[1]) : st + t[3].length;
@@ -182,7 +188,7 @@ function count(fn, bed, label, min_frac) {
 				} else cov_en = cov_en > en0? cov_en : en0;
 			}
 			cov += cov_en - cov_st;
-			if (cov >= (en - st) * min_frac) {
+			if (cov >= (en - st) * opt.min_frac) {
 				c = i;
 				break;
 			}
@@ -195,14 +201,18 @@ function count(fn, bed, label, min_frac) {
 }
 
 function main(args) {
-	let min_frac = 0.7;
-	for (const o of getopt(args, "f:", [])) {
-		if (o.opt == "-f") min_frac = parseFloat(o.arg);
+	let opt = { min_frac:0.7, eval_ins:false, eval_del:false };
+	for (const o of getopt(args, "f:id", [])) {
+		if (o.opt == "-f") opt.min_frac = parseFloat(o.arg);
+		else if (o.opt == "-i") opt.eval_ins = true;
+		else if (o.opt == "-d") opt.eval_del = true;
 	}
 	if (args.length < 2) {
 		print("Usage: truvari-count.js [options] <refine.dir> <reg1.bed> [...]");
 		print("Options:");
-		print(`  -f FLOAT    min overlap fraction [${min_frac}]`);
+		print(`  -f FLOAT    min overlap fraction [${opt.min_frac}]`);
+		print(`  -i          evaluate insertions only`);
+		print(`  -d          evaluate deletions only`);
 		return 1;
 	}
 	let bed = [];
@@ -219,8 +229,8 @@ function main(args) {
 		}
 		bed.push(b);
 	}
-	const fn = count(`${args[0]}/refine.base.vcf.gz`, bed, ":FN:", min_frac);
-	const fp = count(`${args[0]}/refine.comp.vcf.gz`, bed, ":FP:", min_frac);
+	const fn = count(`${args[0]}/refine.base.vcf.gz`, bed, ":FN:", opt);
+	const fp = count(`${args[0]}/refine.comp.vcf.gz`, bed, ":FP:", opt);
 	let a = [];
 	for (let i = 0; i < fn.length; ++i) a.push(fn[i]);
 	for (let i = 0; i < fp.length; ++i) a.push(fp[i]);
