@@ -1,3 +1,11 @@
+## Plotting scripts
+
+* `plot-pie.gp`: for Fig. 1A
+* `plot-acc.gp`: for Fig. 1B, 1C and Fig. 2
+* `plot-strat.gp`: for Fig. 4
+
+## Data files
+
 File `31eval-Q100.txt` and `32eval-old.txt`:
 
 1. Caller name
